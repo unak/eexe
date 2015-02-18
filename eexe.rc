@@ -1,0 +1,28 @@
+#include <windows.h>
+#include "eexe.h"
+
+1 VERSIONINFO
+FILEVERSION MAJOR, MINOR, TEENY, BUILD
+PRODUCTVERSION MAJOR, MINOR, TEENY, BUILD
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+{
+ BLOCK "StringFileInfo"
+ {
+  BLOCK "041103A4"
+  {
+   VALUE "FileDescription", "Editor Executer\000"
+   VALUE "FileVersion", VER "\000"
+   VALUE "InternalName", "eexe\000"
+   VALUE "LegalCopyright", "Copyright (C) 1998,1999,2003,2008,2013,2014 by U.Nakamura\000"
+   VALUE "OriginalFilename", "e.exe\000"
+  }
+
+ }
+
+ BLOCK "VarFileInfo"
+ {
+  VALUE "Translation", 0x411, 932
+ }
+
+}
