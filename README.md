@@ -35,7 +35,7 @@ And, when e.exe is kicked as the target of redirection, it reads the contents fr
 
 ```
 C:\> dir | e
-(opens your editor with a temproray file contains the result of `dir` command)
+(opens your editor with a temporary file contains the result of `dir` command)
 ```
 
 These temporary files will be removed just after the editor is invoked (and e.exe will be end immediatelty.)
@@ -53,6 +53,15 @@ C:\> e foo.txt
 
 C:\> e --wait foo.txt
 (opens your editor with `foo.txt', and wait until the file is closed)
+```
+
+If the output of e.exe is also redirected, pass the content of the edited file to pipe output.
+In such case, e.exe automatically waits the file closing just like specified `--wait`.
+
+```
+C:\> dir | e | findstr $
+(opens your editor with a temporary file, wait until the file is closed, and pass the content of the file to `findstr` command)
+
 ```
 
 License

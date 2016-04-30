@@ -122,6 +122,44 @@ GetPipeInput(char *pszTmpname)
 }
 
 /*  ------------------------------------
+	IsPipeOutput
+	パイプ出力確認
+    ------------------------------------  */
+static BOOL
+IsPipeOutput(void)
+{
+    int fd = fileno(stdout);
+    errno = 0;
+    if (_isatty(fd) || errno == EBADF) {
+	return FALSE;
+    }
+    _setmode(fd, _O_BINARY);
+    return TRUE;
+}
+
+/*  ------------------------------------
+	PipeOutput
+	パイプ出力
+    ------------------------------------  */
+static BOOL
+PipeOutput(WCHAR *pwszFile)
+{
+    char szBuf[1024];
+    FILE *fp;
+    int size;
+
+    if ((fp = _wfopen(pwszFile, L"rb")) != NULL) {
+	while ((size = fread(szBuf, 1, sizeof(szBuf), fp)) > 0) {
+	    fwrite(szBuf, 1, size, stdout);
+	}
+	fclose(fp);
+	return TRUE;
+    }
+
+    return FALSE;
+}
+
+/*  ------------------------------------
 	GetConsoleText
 	コンソールバッファ取得
     ------------------------------------  */
@@ -352,7 +390,7 @@ CreateChildProcess(LPWSTR lpCmdLine)
 	MainWndProc
 	メインウィンドウプロシージャ
     ------------------------------------  */
-LRESULT CALLBACK
+static LRESULT CALLBACK
 MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     DWORD dwResult;
@@ -475,6 +513,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR dmy,
     char szTmp[1024];
     WCHAR wszCmdLine[1024], wszBuf[1024];
     WCHAR *lpCmdLine;
+    BOOL fPipe;
 
     /* Win32 バージョンチェック */
     osVer.dwOSVersionInfoSize = sizeof(osVer);
@@ -537,6 +576,10 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR dmy,
 	glpCmdLine = wszCmdLine;
 	memmove(p, p + 6, (lstrlenW(p + 6) + 1) * sizeof(WCHAR));
     }
+    fPipe = IsPipeOutput();
+    if (fPipe) {
+	fWait = TRUE;
+    }
 
     fTemp = GetPipeInput(szTmp);
     while (TRUE) {
@@ -590,6 +633,10 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR dmy,
     }
 
     SetForegroundWindow(hParent);
+
+    if (fPipe) {
+	PipeOutput(glpCmdLine);
+    }
 
     if (fTemp) {
 	_wremove(glpCmdLine);
