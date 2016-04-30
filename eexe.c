@@ -380,7 +380,7 @@ CreateChildProcess(LPWSTR lpCmdLine)
 	return INVALID_HANDLE_VALUE;
     }
     CloseHandle(pi.hThread);
-    WaitForInputIdle(pi.hProcess, 5000);
+    WaitForInputIdle(pi.hProcess, 500);
 
     return pi.hProcess;
 }
