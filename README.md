@@ -26,7 +26,17 @@ Run e.exe from Command Prompt.
 
 When running e.exe without any parameters, it saves the contents in the screen buffer to a temporary file, and opens the file by the editor.
 
+```
+C:\> e
+(opens your editor with a temporary file contains the screen buffer)
+```
+
 And, when e.exe is kicked as the target of redirection, it reads the contents from pipe, saves to a temporary file, and opens the file by the editor.
+
+```
+C:\> dir | e
+(opens your editor with a temproray file contains the result of `dir` command)
+```
 
 These temporary files will be removed just after the editor is invoked (and e.exe will be end immediatelty.)
 If you want to delay removing the files, pass `--wait` switch to e.exe.
@@ -37,11 +47,18 @@ If you want to open an existing / new file, simply specify the file name as the 
 You can specify `--wait` switch in this case, too.
 Of course, in this case, the file will not removed automatically.
 
+```
+C:\> e foo.txt
+(opens your editor with `foo.txt`)
+
+C:\> e --wait foo.txt
+(opens your editor with `foo.txt', and wait until the file is closed)
+```
 
 License
 -------
 
-Copyright (c) 1998,1999,2003,2008,2013,2014 by U.Nakamura
+Copyright (c) 1998 by U.Nakamura
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or

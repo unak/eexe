@@ -1,8 +1,8 @@
 /*  ======================================================================
 
-		Editor Executer			version 1.1.3
+		Editor Executer			version 1.1.4
 
-	Copyright (c) 1998,1999,2003,2008,2013,2014 by U.Nakamura
+	Copyright (c) 1998 by U.Nakamura
 						All rights reserved.
 
 	Redistribution and use in source and binary forms, with or
@@ -66,7 +66,7 @@
 HINSTANCE g_hInst;			/* カレントのインスタンス */
 char szClass[] = "eexe";		/* ウィンドウクラス */
 HANDLE hProcess = INVALID_HANDLE_VALUE;	/* 子プロセスハンドル */
-char *glpCmdLine;			/* コマンドライン */
+WCHAR *glpCmdLine;			/* コマンドライン */
 BOOL fWait = FALSE;			/* 待ちフラグ */
 
 
@@ -254,32 +254,30 @@ GetConsoleText(char *pszTmpname)
 	レジストリ値取得
     ------------------------------------  */
 static BOOL
-GetRegValue(HKEY hKey, const char *pszValue, const char *pszName, char *pszBuf,
-	    DWORD dwSize)
+GetRegValue(HKEY hKey, const WCHAR *pwszValue, const WCHAR *pwszName,
+	    WCHAR *pwszBuf, DWORD dwSize)
 {
     HKEY hSubKey;
     DWORD dwRet;
     DWORD dwType;
     DWORD dwRetSize = dwSize;
 
-    if ((dwRet = RegOpenKeyEx(hKey, pszValue, 0, KEY_READ,
-			      &hSubKey)) != ERROR_SUCCESS) {
+    if ((dwRet = RegOpenKeyExW(hKey, pwszValue, 0, KEY_READ, &hSubKey)) != ERROR_SUCCESS) {
 	return FALSE;
     }
-    if ((dwRet = RegQueryValueEx(hSubKey, pszName, NULL, &dwType, pszBuf,
-				 &dwRetSize)) != ERROR_SUCCESS) {
+    if ((dwRet = RegQueryValueExW(hSubKey, pwszName, NULL, &dwType, (BYTE *)pwszBuf, &dwRetSize)) != ERROR_SUCCESS) {
 	RegCloseKey(hSubKey);
 	return FALSE;
     }
     RegCloseKey(hSubKey);
 
     if (dwType == REG_EXPAND_SZ) {
-	char *p = _alloca(strlen(pszBuf) + 1);
+	WCHAR *p = _alloca((lstrlenW(pwszBuf) + 1) * sizeof(WCHAR));
 	if (!p) {
 	    return FALSE;
 	}
-	strcpy(p, pszBuf);
-	ExpandEnvironmentStrings(p, pszBuf, dwSize);
+	lstrcpyW(p, pwszBuf);
+	ExpandEnvironmentStringsW(p, pwszBuf, dwSize);
     }
 
     return TRUE;
@@ -290,56 +288,57 @@ GetRegValue(HKEY hKey, const char *pszValue, const char *pszName, char *pszBuf,
 	対象プロセス生成
     ------------------------------------  */
 static HANDLE
-CreateChildProcess(LPSTR lpCmdLine)
+CreateChildProcess(LPWSTR lpCmdLine)
 {
-    STARTUPINFO si;
+    STARTUPINFOW si;
     PROCESS_INFORMATION pi;
-    char szReg[1024] = "";
-    char *pszCmd;
-    char *p;
+    WCHAR wszReg[1024] = L"";
+    WCHAR *pwszCmd;
+    WCHAR *p;
 
-    if (!GetRegValue(HKEY_CURRENT_USER, "Software\\U'sa\\eexe", NULL, szReg,
-		     sizeof(szReg))) {
-	char szBuf[1024];
-	if (GetRegValue(HKEY_CLASSES_ROOT, ".txt", NULL, szBuf,
-			sizeof(szBuf))) {
-	    char szBuf2[1024];
-	    _snprintf(szBuf2, sizeof(szBuf2), "%s\\shell\\open\\command",
-		      szBuf);
-	    szReg[sizeof(szReg) - 1] = '\0';
-	    GetRegValue(HKEY_CLASSES_ROOT, szBuf2, NULL, szReg, sizeof(szReg));
+    if (!GetRegValue(HKEY_CURRENT_USER, L"Software\\U'sa\\eexe", NULL, wszReg,
+		     sizeof(wszReg) / sizeof(WCHAR))) {
+	WCHAR wszBuf[1024];
+	if (GetRegValue(HKEY_CLASSES_ROOT, L".txt", NULL, wszBuf,
+			sizeof(wszBuf) / sizeof(WCHAR))) {
+	    WCHAR wszBuf2[1024];
+	    _snwprintf(wszBuf2, sizeof(wszBuf2) / sizeof(WCHAR),
+		       L"%ls\\shell\\open\\command", wszBuf);
+	    wszReg[sizeof(wszReg) - 1] = '\0';
+	    GetRegValue(HKEY_CLASSES_ROOT, wszBuf2, NULL, wszReg,
+			sizeof(wszReg) / sizeof(WCHAR));
 	}
     }
-    if (!szReg[0]) {
+    if (!wszReg[0]) {
 	ShowError("No editor is registered");
 	return INVALID_HANDLE_VALUE;
     }
-    pszCmd = _alloca(strlen(szReg) + strlen(lpCmdLine) + 1 + 1);
-    if (!pszCmd) {
+    pwszCmd = _alloca((lstrlenW(wszReg) + lstrlenW(lpCmdLine) + 1 + 1) * sizeof(WCHAR));
+    if (!pwszCmd) {
 	ShowError("Not enough memory");
 	return INVALID_HANDLE_VALUE;
     }
 
-    strcpy(pszCmd, szReg);
-    if ((p = strstr(pszCmd, "\"%1\"")) != NULL && *lpCmdLine == '"') {
-	memmove(p+strlen(lpCmdLine), p+4, strlen(p+4)+1);
-	memcpy(p, lpCmdLine, strlen(lpCmdLine));
+    lstrcpyW(pwszCmd, wszReg);
+    if ((p = wcsstr(pwszCmd, L"\"%1\"")) != NULL && *lpCmdLine == L'"') {
+	memmove(p+lstrlenW(lpCmdLine), p+4, (lstrlenW(p+4)+1) * sizeof(WCHAR));
+	memcpy(p, lpCmdLine, lstrlenW(lpCmdLine) * sizeof(WCHAR));
     }
-    else if ((p = strstr(pszCmd, "%1")) != NULL) {
-	memmove(p+strlen(lpCmdLine), p+2, strlen(p+2)+1);
-	memcpy(p, lpCmdLine, strlen(lpCmdLine));
+    else if ((p = wcsstr(pwszCmd, L"%1")) != NULL) {
+	memmove(p+lstrlenW(lpCmdLine), p+2, (lstrlenW(p+2)+1) * sizeof(WCHAR));
+	memcpy(p, lpCmdLine, lstrlenW(lpCmdLine) * sizeof(WCHAR));
     }
     else {
-	strcat(pszCmd, " ");
-	strcat(pszCmd, lpCmdLine);
+	lstrcatW(pwszCmd, L" ");
+	lstrcatW(pwszCmd, lpCmdLine);
     }
 
     memset(&si, 0, sizeof(si));
     si.cb = sizeof(si);
     memset(&pi, 0, sizeof(pi));
-    if (!CreateProcess(NULL, pszCmd, NULL, NULL, FALSE, 0, NULL, NULL,
-		       &si, &pi)) {
-	ShowError("Cannot invoke process: [%s] %d", pszCmd, GetLastError());
+    if (!CreateProcessW(NULL, pwszCmd, NULL, NULL, FALSE, 0, NULL, NULL,
+			&si, &pi)) {
+	ShowError("Cannot invoke process: [%s] %d", pwszCmd, GetLastError());
 	return INVALID_HANDLE_VALUE;
     }
     CloseHandle(pi.hThread);
@@ -360,7 +359,7 @@ MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     switch (uMsg) {
       case WM_CREATE:
-	SetWindowText(hWnd, glpCmdLine);
+	SetWindowTextW(hWnd, glpCmdLine);
 	break;
 
       case WM_TIMER:
@@ -462,7 +461,7 @@ InitInstance(int nShow)
 	WinMain
     ------------------------------------  */
 int WINAPI
-WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR dmy,
 	int nCmdShow)
 {
     OSVERSIONINFO osVer;		/* Win32 バージョン取得構造体 */
@@ -471,10 +470,11 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
     HWND hWnd = NULL;
     MSG msg;
     HWND hParent;
-    char *p;
+    WCHAR *p;
     BOOL fTemp;
     char szTmp[1024];
-    char szBuf[1024];
+    WCHAR wszCmdLine[1024], wszBuf[1024];
+    WCHAR *lpCmdLine;
 
     /* Win32 バージョンチェック */
     osVer.dwOSVersionInfoSize = sizeof(osVer);
@@ -507,22 +507,45 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
 	return 1;
     }
 
-    strncpy(szBuf, lpCmdLine, sizeof(szBuf));
-    szBuf[sizeof(szBuf) - 1] = '\0';
-    glpCmdLine = szBuf;
-    if ((p = strstr(glpCmdLine, "--wait")) != NULL) {
+    lpCmdLine = GetCommandLineW();
+    while (*lpCmdLine && iswspace(*lpCmdLine)) { /* skip previous spaces */
+	lpCmdLine++;
+    }
+    if (*lpCmdLine == L'"') {	/* skip this program */
+	lpCmdLine++;
+	while (*lpCmdLine && *lpCmdLine != L'"') {
+	    lpCmdLine++;
+	}
+	if (*lpCmdLine) {
+	    lpCmdLine++;
+	}
+    }
+    else {
+	while (*lpCmdLine && !iswspace(*lpCmdLine)) {
+	    lpCmdLine++;
+	}
+    }
+    while (*lpCmdLine && iswspace(*lpCmdLine)) { /* skip spaces before parameters */
+	lpCmdLine++;
+    }
+    glpCmdLine = lpCmdLine;
+    if ((p = wcsstr(glpCmdLine, L"--wait")) != NULL) {
 	fWait = TRUE;
-	memmove(p, p + 6, strlen(p + 6) + 1);
+	wcsncpy(wszCmdLine, lpCmdLine, sizeof(wszCmdLine) / sizeof(WCHAR));
+	wszCmdLine[(sizeof(wszCmdLine) / sizeof(WCHAR)) - 1] = L'\0';
+	p = wszCmdLine + (p - glpCmdLine);
+	glpCmdLine = wszCmdLine;
+	memmove(p, p + 6, (lstrlenW(p + 6) + 1) * sizeof(WCHAR));
     }
 
     fTemp = GetPipeInput(szTmp);
     while (TRUE) {
 	if (fTemp) {
-	    _snprintf(szBuf, sizeof(szBuf), "%s %s", glpCmdLine, szTmp);
-	    szBuf[sizeof(szBuf) - 1] = '\0';
-	    glpCmdLine = szBuf;
+	    _snwprintf(wszBuf, sizeof(wszBuf) / sizeof(WCHAR), L"%s %S", glpCmdLine, szTmp);
+	    wszBuf[(sizeof(wszBuf)) / sizeof(WCHAR) - 1] = L'\0';
+	    glpCmdLine = wszBuf;
 	}
-	while (*glpCmdLine && strchr(" \t", *glpCmdLine)) {
+	while (*glpCmdLine && iswspace(*glpCmdLine)) {
 	    glpCmdLine++;
 	}
 
@@ -550,7 +573,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
     hProcess = CreateChildProcess(glpCmdLine);
     if (hProcess == INVALID_HANDLE_VALUE) {
 	/* エラーは表示済み */
-	remove(glpCmdLine);
+	_wremove(glpCmdLine);
 	PostQuitMessage(1);
 	return 1;
     }
@@ -569,7 +592,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
     SetForegroundWindow(hParent);
 
     if (fTemp) {
-	remove(glpCmdLine);
+	_wremove(glpCmdLine);
     }
 
     return msg.wParam;
