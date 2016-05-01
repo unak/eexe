@@ -172,6 +172,7 @@ GetConsoleText(char *pszTmpname)
     FILE *fp;
     BOOL start;
     int top;
+    int empties;
     static BOOL (WINAPI *pAttachConsole)(DWORD) = NULL;
     static const DWORD table[] = { STD_OUTPUT_HANDLE, STD_ERROR_HANDLE };
     int i;
@@ -222,7 +223,7 @@ GetConsoleText(char *pszTmpname)
 	return FALSE;
     }
     start = FALSE;
-    for (top = 0; top < csbi.dwSize.Y; top += LINES) {
+    for (top = 0, empties = 0; top < csbi.dwSize.Y; top += LINES) {
 	SMALL_RECT sr;
 	int lines;
 	COORD crdSize;
@@ -272,11 +273,17 @@ GetConsoleText(char *pszTmpname)
 		    break;
 		}
 	    }
-	    if (!start && buf[0]) {
-		start = TRUE;
-	    }
-	    if (start) {
+	    if (buf[0]) {
+		if (!start) {
+		    start = TRUE;
+		}
+		for (; empties > 0; empties--) {
+		    fputs("\n", fp);
+		}
 		fprintf(fp, "%s\n", buf);
+	    }
+	    else if (start) {
+		empties++;
 	    }
 	}
     }
