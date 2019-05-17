@@ -6,17 +6,17 @@ What's this?
 
 A tool to invoke an editor for Windows.
 
-+ e.exe can redirect the result of other command from Command Prompt, and pass it to the editor via a temporary file.
-+ e.exe can pass the contents in the screen buffer of Command Prompt to the editor via a temporary file.
-+ Of course, e.exe can open a file by the editor.
++ e.exe can redirect the result of another command from the Command Prompt, and pass it to the editor via a temporary file.
++ e.exe can pass the contents in the screen buffer of the Command Prompt to the editor via a temporary file.
++ Of course, e.exe can open a file with the editor.
 
 
 Initial setting
 ---------------
 
-e.exe invokes the application associated to .txt filetype.
-So, you have to associate your favorite editor to .txt filetype.
-And, put e.exe to where Path environment variable indicates.
+e.exe invokes the application associated with the .txt filetype.
+So, you have to associate your favorite editor to the .txt filetype.
+And you have to put e.exe in a location included in your Path environment variable.
 
 
 How to use?
@@ -24,43 +24,43 @@ How to use?
 
 Run e.exe from Command Prompt.
 
-When running e.exe without any parameters, it saves the contents in the screen buffer to a temporary file, and opens the file by the editor.
+When running e.exe without any parameters, it saves the contents in the screen buffer to a temporary file, and opens the file with the editor.
 
 ```
 C:\> e
-(opens your editor with a temporary file contains the screen buffer)
+(opens your editor with a temporary file containing the screen buffer)
 ```
 
-And, when e.exe is kicked as the target of redirection, it reads the contents from pipe, saves to a temporary file, and opens the file by the editor.
+And, when e.exe is invoked as the target of redirection, it reads the contents from pipe, saves it to a temporary file, and opens the file with the editor.
 
 ```
 C:\> dir | e
 (opens your editor with a temporary file contains the result of `dir` command)
 ```
 
-These temporary files will be removed just after the editor is invoked (and e.exe will be end immediatelty.)
-If you want to delay removing the files, pass `--wait` switch to e.exe.
-If the switch is passed, e.exe will wait the termination of the editor.
-These temporary files are created on the current directory.
+These temporary files will be removed right after the editor is invoked (and e.exe will end immediatelty.)
+If you want to delay removing the files, pass the `--wait` switch to e.exe.
+If the switch is passed, e.exe will wait for the termination of the editor.
+These temporary files are created in the current directory.
 
-If you want to open an existing / new file, simply specify the file name as the parameter to e.exe.
-You can specify `--wait` switch in this case, too.
-Of course, in this case, the file will not removed automatically.
+If you want to open an existing / new file, simply specify the file name as a parameter to e.exe.
+You can add the `--wait` switch in this case, too.
+Of course, in this case, the file will not be removed automatically.
 
 ```
 C:\> e foo.txt
 (opens your editor with `foo.txt`)
 
 C:\> e --wait foo.txt
-(opens your editor with `foo.txt', and wait until the file is closed)
+(opens your editor with `foo.txt', and waits until the file is closed)
 ```
 
-If the output of e.exe is also redirected, pass the content of the edited file to pipe output.
-In such case, e.exe automatically waits the file closing just like specified `--wait`.
+If the output of e.exe is also redirected, the content of the edited file is passed to the pipe output.
+In such a case, e.exe automatically waits for file closing just as if `--wait` was specified.
 
 ```
 C:\> dir | e | findstr $
-(opens your editor with a temporary file, wait until the file is closed, and pass the content of the file to `findstr` command)
+(opens your editor with a temporary file, waits until the file is closed, and passes the content of the file to the `findstr` command)
 
 ```
 
